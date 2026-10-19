@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'api_client.dart';
 
 enum DeviceStatus { inStock, reserved, sold }
 
