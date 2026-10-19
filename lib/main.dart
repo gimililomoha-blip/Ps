@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'api_client.dart';
+import 'login_page.dart';
 
 enum DeviceStatus { inStock, reserved, sold }
 
@@ -81,7 +82,7 @@ class StockPilotApp extends StatelessWidget {
       scaffoldBackgroundColor: const Color(0xfff6f7fb),
       useMaterial3: true,
     ),
-    home: const DashboardPage(),
+    home: const LoginPage(),
   );
 }
 
