@@ -1,0 +1,79 @@
+{
+    "projectType": "flutter",
+    "title": "Flutter Project",
+    "description": "Flutter cross-platform app template with base structure for Android, iOS, Web, and desktop",
+    "server": {
+        "enabled": false,
+        "port": 5013,
+        "autoStart": false
+    },
+    "preview": {
+        "type": "terminal",
+        "url": "http://localhost:5013",
+        "showPreviewButton": true,
+        "previewButtonLabel": "Browser Preview"
+    },
+    "commands": [
+        {
+            "id": "flutter_android_setup_env",
+            "label": "Initialize Environment",
+            "command": "bash android/setup_android_env.sh",
+            "workingDir": ".",
+            "shell": true
+        },
+        {
+            "id": "flutter_doctor",
+            "label": "Check Flutter Environment",
+            "command": "flutter doctor",
+            "workingDir": ".",
+            "shell": true
+        },
+        {
+            "id": "flutter_pub_get",
+            "label": "Get Dependencies",
+            "command": "flutter pub get",
+            "workingDir": ".",
+            "shell": true
+        },
+        {
+            "id": "flutter_run_web_server",
+            "label": "Start Web Preview",
+            "command": "flutter run -d web-server --web-hostname 0.0.0.0 --web-port 5013",
+            "workingDir": ".",
+            "shell": true,
+            "usesDedicatedSession": true,
+            "sessionTitle": "Flutter Web Server"
+        },
+        {
+            "id": "flutter_analyze",
+            "label": "Static Analysis",
+            "command": "flutter analyze",
+            "workingDir": ".",
+            "shell": true
+        },
+        {
+            "id": "flutter_test",
+            "label": "Run Tests",
+            "command": "flutter test",
+            "workingDir": ".",
+            "shell": true
+        },
+        {
+            "id": "flutter_build_apk",
+            "label": "Build APK",
+            "command": "flutter build apk",
+            "workingDir": ".",
+            "shell": true
+        },
+        {
+            "id": "flutter_build_web",
+            "label": "Build Web",
+            "command": "flutter build web --no-tree-shake-icons",
+            "workingDir": ".",
+            "shell": true
+        }
+    ],
+    "export": {
+        "enabled": false
+    }
+}

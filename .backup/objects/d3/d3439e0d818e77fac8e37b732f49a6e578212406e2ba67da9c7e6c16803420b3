@@ -1,0 +1,1512 @@
+import 'package:flutter/material.dart';
+
+enum DeviceStatus { inStock, reserved, sold }
+
+extension DeviceStatusLabel on DeviceStatus {
+  String get label => switch (this) {
+    DeviceStatus.inStock => 'In stock',
+    DeviceStatus.reserved => 'Reserved',
+    DeviceStatus.sold => 'Sold',
+  };
+}
+
+class Store {
+  Store(this.name);
+  final String name;
+}
+
+class InventoryDevice {
+  InventoryDevice({
+    required this.model,
+    required this.imei,
+    required this.store,
+    this.price = 0,
+    this.status = DeviceStatus.inStock,
+  });
+  String model;
+  String imei;
+  String store;
+  double price;
+  DeviceStatus status;
+
+  String get statusLabel => status.label;
+}
+
+class StockTransfer {
+  StockTransfer({
+    required this.devices,
+    required this.fromStore,
+    required this.toStore,
+    this.status = 'Pending',
+  });
+  final List<InventoryDevice> devices;
+  final String fromStore;
+  final String toStore;
+  String status;
+
+  int get itemCount => devices.length;
+
+  bool get isPending => status == 'Pending';
+  bool get isCompleted => status == 'Completed';
+  bool get isCancelled => status == 'Cancelled';
+}
+
+class AppUser {
+  AppUser({
+    required this.name,
+    required this.email,
+    required this.role,
+    required this.store,
+    this.active = true,
+  });
+  final String name;
+  final String email;
+  final String role;
+  final String store;
+  bool active;
+}
+
+void main() => runApp(const StockPilotApp());
+
+class StockPilotApp extends StatelessWidget {
+  const StockPilotApp({super.key});
+  @override
+  Widget build(BuildContext context) => MaterialApp(
+    debugShowCheckedModeBanner: false,
+    title: 'StockPilot',
+    theme: ThemeData(
+      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff3157d5)),
+      scaffoldBackgroundColor: const Color(0xfff6f7fb),
+      useMaterial3: true,
+    ),
+    home: const DashboardPage(),
+  );
+}
+
+class DashboardPage extends StatefulWidget {
+  const DashboardPage({super.key});
+  @override
+  State<DashboardPage> createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends State<DashboardPage> {
+  int selected = 0;
+  final pages = const [
+    'Dashboard',
+    'Inventory',
+    'Transfers',
+    'Stores',
+    'Users',
+  ];
+  final List<Store> stores = [
+    'All stores',
+    'Central Store',
+    'Westside Store',
+    'Eastside Store',
+    'North Store',
+  ].map(Store.new).toList();
+  final List<InventoryDevice> inventory = [
+    InventoryDevice(
+      model: 'iPhone 15 Pro',
+      imei: '356789012345678',
+      store: 'Central Store',
+    ),
+    InventoryDevice(
+      model: 'Samsung S24 Ultra',
+      imei: '358901234567890',
+      store: 'Westside Store',
+    ),
+    InventoryDevice(
+      model: 'Google Pixel 8',
+      imei: '351234567890123',
+      store: 'Eastside Store',
+      price: 899,
+      status: DeviceStatus.reserved,
+    ),
+  ];
+  String inventoryFilter = 'All';
+  String inventoryQuery = '';
+  String? selectedStoreFilter;
+  final List<StockTransfer> transfers = [];
+  final List<AppUser> users = [
+    AppUser(
+      name: 'John Doe',
+      email: 'john@stockpilot.com',
+      role: 'Super Admin',
+      store: 'All stores',
+    ),
+    AppUser(
+      name: 'Sarah Miller',
+      email: 'sarah@stockpilot.com',
+      role: 'Store Manager',
+      store: 'Central Store',
+    ),
+    AppUser(
+      name: 'Mike Chen',
+      email: 'mike@stockpilot.com',
+      role: 'Inventory Staff',
+      store: 'Westside Store',
+    ),
+    AppUser(
+      name: 'Alex Brown',
+      email: 'alex@stockpilot.com',
+      role: 'Read-only User',
+      store: 'Eastside Store',
+      active: false,
+    ),
+  ];
+  final roles = const [
+    'Super Admin',
+    'Store Manager',
+    'Inventory Staff',
+    'Read-only User',
+  ];
+  void _addUser(String email, String role, String store) {
+    setState(
+      () => users.add(
+        AppUser(
+          name: email.split('@').first,
+          email: email,
+          role: role,
+          store: store,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final wide = MediaQuery.sizeOf(context).width >= 800;
+    return Scaffold(
+      drawer: wide ? null : Drawer(child: _sidebar()),
+      body: Row(
+        children: [
+          if (wide) _sidebar(),
+          Expanded(
+            child: SafeArea(
+              child: Column(
+                children: [
+                  _topBar(wide),
+                  Expanded(child: _content()),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sidebar() => Container(
+    width: 248,
+    color: const Color(0xff17213d),
+    padding: const EdgeInsets.fromLTRB(20, 28, 16, 20),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 10,
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: const Color(0xff4e70ed),
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: const Icon(Icons.inventory_2_rounded, color: Colors.white),
+            ),
+            const Text(
+              'StockPilot',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 42),
+        const Text(
+          'WORKSPACE',
+          style: TextStyle(
+            color: Color(0xff8490b1),
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _nav(Icons.grid_view_rounded, 'Dashboard', 0),
+        _nav(Icons.phone_android_rounded, 'Inventory', 1),
+        _nav(Icons.swap_horiz_rounded, 'Transfers', 2),
+        const SizedBox(height: 25),
+        const Text(
+          'ADMINISTRATION',
+          style: TextStyle(
+            color: Color(0xff8490b1),
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _nav(Icons.storefront_rounded, 'Stores', 3),
+        _nav(Icons.people_alt_rounded, 'Users & Roles', 4),
+        const Spacer(),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xff202d4e),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: Color(0xfff0b48b),
+                child: Text(
+                  'JD',
+                  style: TextStyle(fontSize: 11, color: Colors.white),
+                ),
+              ),
+              SizedBox(width: 9),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'John Doe',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'Super Admin',
+                      style: TextStyle(color: Color(0xff94a0bd), fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.more_vert, color: Color(0xff94a0bd)),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _nav(IconData icon, String label, int index) => InkWell(
+    onTap: () => setState(() => selected = index),
+    child: Container(
+      margin: const EdgeInsets.only(bottom: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: selected == index ? const Color(0xff3157d5) : Colors.transparent,
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 13,
+        children: [
+          Icon(
+            icon,
+            color: selected == index ? Colors.white : const Color(0xff9da8c3),
+            size: 20,
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              color: selected == index ? Colors.white : const Color(0xffb7c0d4),
+              fontWeight: selected == index
+                  ? FontWeight.bold
+                  : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  Widget _topBar(bool wide) => Padding(
+    padding: const EdgeInsets.fromLTRB(28, 20, 28, 14),
+    child: Row(
+      children: [
+        if (!wide)
+          Builder(
+            builder: (context) => IconButton(
+              onPressed: () => Scaffold.of(context).openDrawer(),
+              icon: const Icon(Icons.menu),
+            ),
+          ),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                pages[selected],
+                style: const TextStyle(
+                  fontSize: 25,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xff17213d),
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                selected == 0
+                    ? 'Here’s what’s happening across your network today.'
+                    : 'Manage your phone stock and operations.',
+                style: const TextStyle(color: Color(0xff7d879f)),
+              ),
+            ],
+          ),
+        ),
+        IconButton(
+          onPressed: () {},
+          icon: const Icon(
+            Icons.notifications_none_rounded,
+            color: Color(0xff606b85),
+          ),
+        ),
+        const SizedBox(width: 8),
+        OutlinedButton.icon(
+          onPressed: () {},
+          icon: const Icon(Icons.add, size: 18),
+          label: const Text('Add Stock'),
+        ),
+      ],
+    ),
+  );
+
+  Widget _content() => SingleChildScrollView(
+    padding: const EdgeInsets.fromLTRB(28, 8, 28, 30),
+    child: selected == 0
+        ? _dashboard()
+        : selected == 1
+        ? _inventory()
+        : selected == 3
+        ? _storeManagement()
+        : selected == 4
+        ? _users()
+        : _transfers(),
+  );
+
+  Widget _users() => Container(
+    padding: const EdgeInsets.all(20),
+    decoration: _box(),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Users & Roles',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xff17213d),
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Manage access across your stores',
+                  style: TextStyle(color: Color(0xff8992a7), fontSize: 12),
+                ),
+              ],
+            ),
+            FilledButton.icon(
+              onPressed: () => _showAddUser(),
+              icon: const Icon(Icons.person_add_alt_1, size: 18),
+              label: const Text('Add User'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        ...users.map(
+          (u) => ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: CircleAvatar(
+              backgroundColor: const Color(0xffe7edff),
+              child: Text(
+                u.name.split(' ').map((x) => x[0]).join(),
+                style: const TextStyle(color: Color(0xff3157d5), fontSize: 12),
+              ),
+            ),
+            title: Text(
+              u.name,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: Text(
+              '${u.email} · ${u.store}',
+              style: const TextStyle(fontSize: 12, color: Color(0xff8992a7)),
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Chip(label: Text(u.role, style: const TextStyle(fontSize: 11))),
+                Switch(
+                  value: u.active,
+                  onChanged: (value) => setState(() => u.active = value),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  void _showAddUser() {
+    final email = TextEditingController();
+    String role = roles[1];
+    String store = stores[1].name;
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Add user'),
+          content: SizedBox(
+            width: 420,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: email,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(labelText: 'Email address'),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: role,
+                  decoration: const InputDecoration(labelText: 'Role'),
+                  items: roles
+                      .map((r) => DropdownMenuItem(value: r, child: Text(r)))
+                      .toList(),
+                  onChanged: (v) => setDialogState(() => role = v!),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: store,
+                  decoration: const InputDecoration(labelText: 'Store scope'),
+                  items: stores
+                      .map(
+                        (s) => DropdownMenuItem(
+                          value: s.name,
+                          child: Text(s.name),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (v) => setDialogState(() => store = v!),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final value = email.text.trim();
+                if (!value.contains('@')) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Enter a valid email address'),
+                    ),
+                  );
+                  return;
+                }
+                _addUser(value, role, store);
+                Navigator.pop(dialogContext);
+              },
+              child: const Text('Invite'),
+            ),
+          ],
+        ),
+      ),
+    );
+    email.addListener(() {});
+  }
+
+  Widget _inventory() {
+    final query = inventoryQuery.trim().toLowerCase();
+    final devices = inventory.where((d) {
+      final matchesFilter =
+          inventoryFilter == 'All' || d.status.label == inventoryFilter;
+      final matchesStore =
+          selectedStoreFilter == null || d.store == selectedStoreFilter;
+      final matchesQuery =
+          query.isEmpty ||
+          '${d.model} ${d.imei} ${d.store}'.toLowerCase().contains(query);
+      return matchesFilter && matchesStore && matchesQuery;
+    }).toList();
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: _box(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            runSpacing: 12,
+            spacing: 12,
+            children: [
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'IMEI Inventory',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xff17213d),
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Track every device across your stores',
+                    style: TextStyle(color: Color(0xff8992a7), fontSize: 12),
+                  ),
+                ],
+              ),
+              FilledButton.icon(
+                onPressed: () => _showAddStock(),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Add Device'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              SizedBox(
+                width: 260,
+                child: TextField(
+                  onChanged: (value) => setState(() => inventoryQuery = value),
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.search),
+                    labelText: 'Search model, IMEI, or store',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 160,
+                child: DropdownButtonFormField<String>(
+                  initialValue: inventoryFilter,
+                  decoration: const InputDecoration(
+                    labelText: 'Status',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const ['All', 'In stock', 'Reserved', 'Sold']
+                      .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                      .toList(),
+                  onChanged: (value) =>
+                      setState(() => inventoryFilter = value ?? 'All'),
+                ),
+              ),
+              SizedBox(
+                width: 180,
+                child: DropdownButtonFormField<String?>(
+                  initialValue: selectedStoreFilter,
+                  decoration: const InputDecoration(
+                    labelText: 'Store',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('All stores'),
+                    ),
+                    ...stores
+                        .skip(1)
+                        .map(
+                          (store) => DropdownMenuItem<String?>(
+                            value: store.name,
+                            child: Text(store.name),
+                          ),
+                        ),
+                  ],
+                  onChanged: (value) =>
+                      setState(() => selectedStoreFilter = value),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '${devices.length} device${devices.length == 1 ? '' : 's'} found',
+            style: const TextStyle(color: Color(0xff8992a7), fontSize: 12),
+          ),
+          const SizedBox(height: 8),
+          if (devices.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 28),
+              child: Center(
+                child: Text(
+                  'No devices match your search.',
+                  style: TextStyle(color: Color(0xff8992a7)),
+                ),
+              ),
+            ),
+          ...devices.map(
+            (d) => ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const CircleAvatar(child: Icon(Icons.phone_android)),
+              title: Text(
+                d.model,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle: Text('IMEI: ${d.imei} · ${d.store}'),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Chip(label: Text(d.status.label)),
+                  PopupMenuButton<String>(
+                    onSelected: (action) {
+                      if (action == 'edit') _showEditStock(d);
+                      if (action == 'delete') _confirmDeleteStock(d);
+                    },
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(value: 'edit', child: Text('Edit')),
+                      PopupMenuItem(value: 'delete', child: Text('Delete')),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditStock(InventoryDevice device) {
+    final model = TextEditingController(text: device.model);
+    final imei = TextEditingController(text: device.imei);
+    final price = TextEditingController(text: device.price.toStringAsFixed(0));
+    String store = device.store;
+    DeviceStatus status = device.status;
+    String? error;
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Edit device'),
+          content: SizedBox(
+            width: 420,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: model,
+                  decoration: const InputDecoration(labelText: 'Model'),
+                ),
+                TextField(
+                  controller: imei,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'IMEI'),
+                ),
+                TextField(
+                  controller: price,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(labelText: 'Unit price'),
+                ),
+                DropdownButtonFormField<String>(
+                  initialValue: store,
+                  decoration: const InputDecoration(labelText: 'Store'),
+                  items: stores
+                      .skip(1)
+                      .map(
+                        (s) => DropdownMenuItem(
+                          value: s.name,
+                          child: Text(s.name),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (v) => setDialogState(() => store = v!),
+                ),
+                DropdownButtonFormField<DeviceStatus>(
+                  initialValue: status,
+                  decoration: const InputDecoration(labelText: 'Status'),
+                  items: DeviceStatus.values
+                      .map(
+                        (s) => DropdownMenuItem(value: s, child: Text(s.label)),
+                      )
+                      .toList(),
+                  onChanged: (v) => setDialogState(() => status = v!),
+                ),
+                if (error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Text(
+                      error!,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final newModel = model.text.trim();
+                final newImei = imei.text.trim();
+                if (newModel.isEmpty) {
+                  setDialogState(() => error = 'Enter a device model.');
+                  return;
+                }
+                if (!RegExp(r'^\d{15}$').hasMatch(newImei)) {
+                  setDialogState(
+                    () => error = 'IMEI must contain exactly 15 digits.',
+                  );
+                  return;
+                }
+                if (inventory.any((d) => d != device && d.imei == newImei)) {
+                  setDialogState(() => error = 'This IMEI already exists.');
+                  return;
+                }
+                setState(() {
+                  device.model = newModel;
+                  device.imei = newImei;
+                  device.store = store;
+                  device.status = status;
+                });
+                Navigator.pop(dialogContext);
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmDeleteStock(InventoryDevice device) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete device?'),
+        content: Text(
+          'Remove ${device.model} (${device.imei}) from inventory?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              setState(() => inventory.remove(device));
+              Navigator.pop(dialogContext);
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddStock() {
+    final model = TextEditingController();
+    final imei = TextEditingController();
+    String store = stores[1].name;
+    String? error;
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Add device'),
+          content: SizedBox(
+            width: 420,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: model,
+                  decoration: const InputDecoration(labelText: 'Model'),
+                ),
+                TextField(
+                  controller: imei,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'IMEI'),
+                ),
+                DropdownButtonFormField<String>(
+                  initialValue: store,
+                  decoration: const InputDecoration(labelText: 'Store'),
+                  items: stores
+                      .skip(1)
+                      .map(
+                        (s) => DropdownMenuItem(
+                          value: s.name,
+                          child: Text(s.name),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (v) => setDialogState(() => store = v!),
+                ),
+                if (error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Text(
+                      error!,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final modelValue = model.text.trim();
+                final imeiValue = imei.text.trim();
+                if (modelValue.isEmpty) {
+                  setDialogState(() => error = 'Enter a device model.');
+                  return;
+                }
+                if (!RegExp(r'^\\d{15}$').hasMatch(imeiValue)) {
+                  setDialogState(
+                    () => error = 'IMEI must contain exactly 15 digits.',
+                  );
+                  return;
+                }
+                if (inventory.any((d) => d.imei == imeiValue)) {
+                  setDialogState(() => error = 'This IMEI already exists.');
+                  return;
+                }
+                setState(
+                  () => inventory.add(
+                    InventoryDevice(
+                      model: modelValue,
+                      imei: imeiValue,
+                      store: store,
+                    ),
+                  ),
+                );
+                Navigator.pop(dialogContext);
+              },
+              child: const Text('Add'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _storeManagement() => Container(
+    padding: const EdgeInsets.all(20),
+    decoration: _box(),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Stores',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            FilledButton.icon(
+              onPressed: () => _showAddStore(),
+              icon: const Icon(Icons.add),
+              label: const Text('Add Store'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ...stores
+            .skip(1)
+            .map(
+              (s) => ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.storefront_outlined),
+                title: Text(s.name),
+                subtitle: Text(
+                  '${inventory.where((d) => d.store == s.name).length} devices',
+                ),
+              ),
+            ),
+      ],
+    ),
+  );
+  void _showAddStore() {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Add store'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(labelText: 'Store name'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final name = controller.text.trim();
+              if (name.isNotEmpty && !stores.any((s) => s.name == name)) {
+                setState(() => stores.add(Store(name)));
+              }
+              Navigator.pop(dialogContext);
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dashboard() {
+    final totalDevices = inventory.length;
+    final inStockDevices = inventory
+        .where((d) => d.status == DeviceStatus.inStock)
+        .length;
+    final pendingItems = transfers
+        .where((t) => t.isPending)
+        .fold<int>(0, (sum, transfer) => sum + transfer.itemCount);
+    final totalValue = inventory.fold<double>(
+      0,
+      (sum, device) => sum + device.price,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        LayoutBuilder(
+          builder: (context, c) {
+            final n = c.maxWidth > 900
+                ? 4
+                : c.maxWidth > 560
+                ? 2
+                : 1;
+            return GridView.count(
+              crossAxisCount: n,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 2.05,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              children: [
+                _stat(
+                  'Total Devices',
+                  '$totalDevices',
+                  'Live',
+                  Icons.phone_android_rounded,
+                  const Color(0xffe7edff),
+                  const Color(0xff3157d5),
+                ),
+                _stat(
+                  'In Stock',
+                  '$inStockDevices',
+                  'Live',
+                  Icons.check_circle_outline,
+                  const Color(0xffe2f7ef),
+                  const Color(0xff15946d),
+                ),
+                _stat(
+                  'Low Stock',
+                  '$pendingItems',
+                  'Pending',
+                  Icons.warning_amber_rounded,
+                  const Color(0xfffff2d9),
+                  const Color(0xffd99016),
+                ),
+                _stat(
+                  'Total Value',
+                  _formatCurrency(totalValue),
+                  'Live',
+                  Icons.payments_outlined,
+                  const Color(0xfff0e9ff),
+                  const Color(0xff8053cc),
+                ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 27),
+        LayoutBuilder(
+          builder: (context, c) => c.maxWidth < 760
+              ? Column(
+                  children: [
+                    _activity(),
+                    const SizedBox(height: 18),
+                    _stores(),
+                  ],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(flex: 3, child: _activity()),
+                    const SizedBox(width: 18),
+                    Expanded(flex: 2, child: _stores()),
+                  ],
+                ),
+        ),
+      ],
+    );
+  }
+
+  String _formatCurrency(double value) {
+    if (value >= 1000000) return '\$${(value / 1000000).toStringAsFixed(2)}M';
+    if (value >= 1000) return '\$${(value / 1000).toStringAsFixed(1)}K';
+    return '\$${value.toStringAsFixed(0)}';
+  }
+
+  Widget _stat(
+    String title,
+    String value,
+    String change,
+    IconData icon,
+    Color bg,
+    Color color,
+  ) => Container(
+    padding: const EdgeInsets.all(18),
+    decoration: _box(),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(color: Color(0xff68738b), fontSize: 13),
+            ),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: bg,
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: Icon(icon, color: color, size: 19),
+            ),
+          ],
+        ),
+        const Spacer(),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 25,
+                fontWeight: FontWeight.bold,
+                color: Color(0xff17213d),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              change,
+              style: TextStyle(
+                color: change.startsWith('-')
+                    ? Colors.red
+                    : const Color(0xff15946d),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+
+  Widget _activity() => Container(
+    padding: const EdgeInsets.all(20),
+    decoration: _box(),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Recent Activity',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.bold,
+            color: Color(0xff17213d),
+          ),
+        ),
+        const SizedBox(height: 5),
+        const Text(
+          'Latest inventory movements across all stores',
+          style: TextStyle(color: Color(0xff8992a7), fontSize: 12),
+        ),
+        const SizedBox(height: 18),
+        ...[
+          [
+            'New stock received',
+            'iPhone 15 Pro · Central Store',
+            '2 min ago',
+            Icons.add_box_outlined,
+            const Color(0xffe2f7ef),
+          ],
+          [
+            'Transfer completed',
+            'Samsung S24 Ultra · Central → West',
+            '25 min ago',
+            Icons.swap_horiz,
+            const Color(0xffe7edff),
+          ],
+          [
+            'Device sold',
+            'Google Pixel 8 · East Store',
+            '1 hour ago',
+            Icons.shopping_bag_outlined,
+            const Color(0xfffff2d9),
+          ],
+          [
+            'Low stock alert',
+            'iPhone 14 · North Store',
+            '2 hours ago',
+            Icons.warning_amber_rounded,
+            const Color(0xffffe7e7),
+          ],
+        ].map(
+          (a) => ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: CircleAvatar(
+              backgroundColor: a[4] as Color,
+              child: Icon(
+                a[3] as IconData,
+                color: const Color(0xff3157d5),
+                size: 19,
+              ),
+            ),
+            title: Text(
+              a[0] as String,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            subtitle: Text(
+              a[1] as String,
+              style: const TextStyle(fontSize: 11, color: Color(0xff8992a7)),
+            ),
+            trailing: Text(
+              a[2] as String,
+              style: const TextStyle(fontSize: 11, color: Color(0xff8992a7)),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _stores() {
+    final totalDevices = inventory.length;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: _box(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Store Overview',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+              color: Color(0xff17213d),
+            ),
+          ),
+          const SizedBox(height: 5),
+          const Text(
+            'Stock levels by location',
+            style: TextStyle(color: Color(0xff8992a7), fontSize: 12),
+          ),
+          const SizedBox(height: 18),
+          ...stores
+              .map(
+                (store) => [
+                  store.name,
+                  inventory.where((d) => d.store == store.name).length,
+                ],
+              )
+              .map(
+                (s) => Padding(
+                  padding: const EdgeInsets.only(bottom: 18),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.storefront_outlined,
+                            size: 17,
+                            color: Color(0xff6d7892),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              s[0] as String,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '${s[1]} devices',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xff8992a7),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      LinearProgressIndicator(
+                        value: totalDevices == 0
+                            ? 0
+                            : (s[1] as int) / totalDevices,
+                        minHeight: 6,
+                        borderRadius: BorderRadius.circular(8),
+                        color: const Color(0xff4f70e7),
+                        backgroundColor: const Color(0xffe9edf5),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+        ],
+      ),
+    );
+  }
+
+  Widget _transfers() => Container(
+    padding: const EdgeInsets.all(20),
+    decoration: _box(),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Stock Transfers',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xff17213d),
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Move IMEI-level devices between stores',
+                  style: TextStyle(color: Color(0xff8992a7), fontSize: 12),
+                ),
+              ],
+            ),
+            FilledButton.icon(
+              onPressed: _showAddTransfer,
+              icon: const Icon(Icons.add),
+              label: const Text('New Transfer'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        if (transfers.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 32),
+            child: Center(
+              child: Text(
+                'No transfers yet.',
+                style: TextStyle(color: Color(0xff8992a7)),
+              ),
+            ),
+          )
+        else
+          ...transfers.map(
+            (transfer) => Card(
+              elevation: 0,
+              color: const Color(0xfff8f9fc),
+              child: ListTile(
+                leading: const Icon(Icons.phone_android_outlined),
+                title: Text(
+                  '${transfer.itemCount} item${transfer.itemCount == 1 ? '' : 's'}',
+                ),
+                subtitle: Text(
+                  '${transfer.fromStore} → ${transfer.toStore}\n${transfer.devices.map((d) => '${d.model} · ${d.imei}').join('\n')}',
+                ),
+                trailing: DropdownButton<String>(
+                  value: transfer.status,
+                  items: const ['Pending', 'Completed', 'Cancelled']
+                      .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                      .toList(),
+                  onChanged: (value) {
+                    if (value != null) _updateTransferStatus(transfer, value);
+                  },
+                ),
+              ),
+            ),
+          ),
+      ],
+    ),
+  );
+
+  bool _hasPendingTransfer(InventoryDevice device) => transfers.any(
+    (transfer) => transfer.devices.contains(device) && transfer.isPending,
+  );
+
+  Future<void> _updateTransferStatus(
+    StockTransfer transfer,
+    String status,
+  ) async {
+    if (!transfer.isPending || status == 'Pending') return;
+
+    final action = status == 'Completed' ? 'complete' : 'cancel';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          '${action[0].toUpperCase()}${action.substring(1)} transfer?',
+        ),
+        content: Text(
+          status == 'Completed'
+              ? 'This will move ${transfer.itemCount} device${transfer.itemCount == 1 ? '' : 's'} to ${transfer.toStore}.'
+              : 'The batch will be cancelled and the devices will remain at ${transfer.fromStore}.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Keep pending'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(action[0].toUpperCase() + action.substring(1)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() {
+      if (status == 'Completed') {
+        for (final device in transfer.devices) {
+          device.store = transfer.toStore;
+        }
+      }
+      transfer.status = status;
+    });
+  }
+
+  void _showAddTransfer() {
+    final available = inventory
+        .where(
+          (d) => d.status == DeviceStatus.inStock && !_hasPendingTransfer(d),
+        )
+        .toList();
+    if (available.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No in-stock devices are available for transfer.'),
+        ),
+      );
+      return;
+    }
+    final selectedDevices = <InventoryDevice>[available.first];
+    var destination = stores
+        .firstWhere(
+          (s) => s.name != selectedDevices.first.store,
+          orElse: () => stores.first,
+        )
+        .name;
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('New transfer'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Select devices'),
+                  const SizedBox(height: 8),
+                  ...available.map(
+                    (d) => CheckboxListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      value: selectedDevices.contains(d),
+                      title: Text('${d.model} · ${d.imei}'),
+                      onChanged: (checked) => setDialogState(() {
+                        if (checked == true) {
+                          selectedDevices.add(d);
+                        } else if (selectedDevices.length > 1) {
+                          selectedDevices.remove(d);
+                        }
+                      }),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: destination,
+                decoration: const InputDecoration(
+                  labelText: 'Destination store',
+                ),
+                items: stores
+                    .where((s) => s.name != selectedDevices.first.store)
+                    .map(
+                      (s) =>
+                          DropdownMenuItem(value: s.name, child: Text(s.name)),
+                    )
+                    .toList(),
+                onChanged: (value) =>
+                    setDialogState(() => destination = value!),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                setState(
+                  () => transfers.add(
+                    StockTransfer(
+                      devices: List.of(selectedDevices),
+                      fromStore: selectedDevices.first.store,
+                      toStore: destination,
+                    ),
+                  ),
+                );
+                Navigator.pop(dialogContext);
+              },
+              child: const Text('Create'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  BoxDecoration _box() => BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(14),
+    border: Border.all(color: const Color(0xffe9ecf3)),
+  );
+}

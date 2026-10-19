@@ -1,0 +1,13 @@
+#!/bin/sh
+# This is a generated file; do not edit or check into version control.
+export "FLUTTER_ROOT=/root/flutter"
+export "FLUTTER_APPLICATION_PATH=/data/user/0/com.ai.assistance.operit/files/workspace/88bd74af-997f-419c-a68e-48b685401bcf"
+export "FLUTTER_FRAMEWORK_SWIFT_PACKAGE_PATH=/data/user/0/com.ai.assistance.operit/files/workspace/88bd74af-997f-419c-a68e-48b685401bcf/macos/Flutter/ephemeral/Packages/.packages/FlutterFramework"
+export "COCOAPODS_PARALLEL_CODE_SIGN=true"
+export "FLUTTER_BUILD_DIR=build"
+export "FLUTTER_BUILD_NAME=1.0.0"
+export "FLUTTER_BUILD_NUMBER=1"
+export "DART_OBFUSCATION=false"
+export "TRACK_WIDGET_CREATION=true"
+export "TREE_SHAKE_ICONS=false"
+export "PACKAGE_CONFIG=.dart_tool/package_config.json"

@@ -1,0 +1,21 @@
+# Generated code do not commit.
+file(TO_CMAKE_PATH "/root/flutter" FLUTTER_ROOT)
+file(TO_CMAKE_PATH "/data/user/0/com.ai.assistance.operit/files/workspace/88bd74af-997f-419c-a68e-48b685401bcf" PROJECT_DIR)
+
+set(FLUTTER_VERSION "1.0.0+1" PARENT_SCOPE)
+set(FLUTTER_VERSION_MAJOR 1 PARENT_SCOPE)
+set(FLUTTER_VERSION_MINOR 0 PARENT_SCOPE)
+set(FLUTTER_VERSION_PATCH 0 PARENT_SCOPE)
+set(FLUTTER_VERSION_BUILD 1 PARENT_SCOPE)
+
+# Environment variables to pass to tool_backend.sh
+list(APPEND FLUTTER_TOOL_ENVIRONMENT
+  "FLUTTER_ROOT=/root/flutter"
+  "PROJECT_DIR=/data/user/0/com.ai.assistance.operit/files/workspace/88bd74af-997f-419c-a68e-48b685401bcf"
+  "DART_DEFINES=RkxVVFRFUl9CVUlMRF9OQU1FPTEuMC4w,RkxVVFRFUl9CVUlMRF9OVU1CRVI9MQ==,RkxVVFRFUl9WRVJTSU9OPTMuNDcuNw==,RkxVVFRFUl9DSEFOTkVMPXN0YWJsZQ==,RkxVVFRFUl9HSVRfVVJMPWh0dHBzOi8vZ2l0aHViLmNvbS9mbHV0dGVyL2ZsdXR0ZXIuZ2l0,RkxVVFRFUl9GUkFNRVdPUktfUkVWSVNJT049YWJhZjljNTIzNw==,RkxVVFRFUl9FTkdJTkVfUkVWSVNJT049ZGViMjg3NDgxZQ==,RkxVVFRFUl9EQVJUX1ZFUlNJT049My4xMy41"
+  "DART_OBFUSCATION=false"
+  "TRACK_WIDGET_CREATION=true"
+  "TREE_SHAKE_ICONS=false"
+  "PACKAGE_CONFIG=/data/user/0/com.ai.assistance.operit/files/workspace/88bd74af-997f-419c-a68e-48b685401bcf/.dart_tool/package_config.json"
+  "FLUTTER_TARGET=lib/main.dart"
+)

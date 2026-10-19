@@ -1,0 +1,13 @@
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:operit_flutter_project/main.dart';
+
+void main() {
+  testWidgets('StockPilot dashboard renders', (WidgetTester tester) async {
+    await tester.pumpWidget(const StockPilotApp());
+
+    expect(find.text('StockPilot'), findsOneWidget);
+    expect(find.text('Dashboard'), findsWidgets);
+    expect(find.text('Total devices'), findsOneWidget);
+  });
+}
