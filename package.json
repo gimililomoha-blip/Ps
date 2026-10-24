@@ -1,0 +1,9 @@
+{
+  "name": "phoneshop",
+  "private": true,
+  "type": "module",
+  "workspaces": ["backend"],
+  "scripts": {
+    "start": "node backend/lib/server.js"
+  }
+}
