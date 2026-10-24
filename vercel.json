@@ -1,15 +1,14 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "backend/lib/server.js",
-      "use": "@vercel/node"
+  "functions": {
+    "backend/lib/server.js": {
+      "runtime": "nodejs22.x"
     }
-  ],
-  "routes": [
+  },
+  "rewrites": [
     {
-      "src": "/(.*)",
-      "dest": "backend/lib/server.js"
+      "source": "/api/:path*",
+      "destination": "/backend/lib/server.js"
     }
   ]
 }
